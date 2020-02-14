@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.node {
+  cursor: pointer;
+}
+
+.node circle {
+  fill: #fff;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.node text {
+  font: 10px sans-serif;
+}
+
+.link {
+  fill: none;
+  stroke: #ccc;
+  stroke-width: 1.5px;
+}
+
+	.axis {
+	  font: 10px sans-serif;
+	}
+
+	.axis path,
+	.axis line {
+	  fill: none;
+	  stroke: #000;
+	  shape-rendering: crispEdges;
+	}
+.BarChartSvg {
+  position:fixed;
+  right:0px;
+  bottom:0px;
+}
+</style>
+<body>
+<!--<script src="//d3js.org/d3.v3.min.js"></script>-->
+<!-- load the d3.js library -->	
+<script src="http://d3js.org/d3.v3.min.js"></script>
+	
+<script>
+
+var margin = {top: 20, right: 120, bottom: 20, left: 120},
+    width = 1920 - margin.right - margin.left,
+    height = 800 - margin.top - margin.bottom;
+
+var i = 0,
+    duration = 750,
+    root;
+
+var tree = d3.layout.tree()
+    .size([height, width]);
+
+var diagonal = d3.svg.diagonal()
+    .projection(function(d) { return [d.y, d.x]; });
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.right + margin.left)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+	
+	
+
+
+d3.csv('ukfood.csv', function ( data ) {
+
+  // ************** store the tree data	 *****************
+
+
+  
+  //Build the fourth hierarchy layer in the tree
+  //set the parent to the calling node in desc3
+  var desc4 = []; 
+  for(h = 0; h < data.length; h++) 
+  {
+    var found = false;
+    for(j = 0; j < desc4.length; j++) 
+    {
+      if(data[h].desc4 == desc4[j].name) 
+      {
+          found = true;
+          break;
+        }
+    }
+    
+    if(!found) 
+    {
+        desc4.push({"name":data[h].desc4,"parent":data[h].desc3, "yearData" : data[h]});
+    }
+  }  
+  
+  
+  //Build the third hierarchy layer in the tree
+  //set the parent to the calling node in desc2
+  var desc3 = []; 
+  for(h = 0; h < data.length; h++)  //look through the entirety of the csv
+  {
+    var found = false;
+	for(j = 0; j < desc3.length; j++) //look through all of the items in desc3
+	{
+      if(data[h].desc3 == desc3[j].name)  //check if there are any duplicate desc3's
+	  {
+		  found = true;
+		  break;
+		}
+	}
+	
+   if(!found)  //if a desc2 is not a duplicate push it to the array of desc2's
+	{
+      //define parent
+	  //add it the list of newDesc and link it to the parent node
+	  
+	  
+	  var newDesc = {"name":data[h].desc3,"parent":data[h].desc2,"children":[], "yearData":data[h]};
+	  //go through each item in desc2 and add them as children to the nodes in newDesc
+	  for(k = 0; k < desc4.length; k++)  
+	  {
+	    if(newDesc.name == desc4[k].parent)
+		newDesc.children.push(desc4[k]);
+	  }
+	  //push the list of parents (desc1) and children (desc2) to desc1
+	  //desc2.push({"name":data[h].desc2,"parent":data[h].desc1});
+	  desc3.push(newDesc);
+	}
+  }  
+
+ 
+  //build the second hierarchy layer in the tree
+  //build the tree from the bottom up with  an additional loop to decide the parent 
+  //bottom layer is all of data[i]
+
+  var desc2 = []; 
+  for(h = 0; h < data.length; h++)  //look through the entirety of the csv
+  {
+    var found = false;
+	for(j = 0; j < desc2.length; j++) //look through all of the items in desc2
+	{
+	  if(data[h].desc2 == desc2[j].name)  //check if there are any duplicate desc2's
+	  {
+	    found = true;
+		break;
+	  }
+	}
+	
+	if(!found)  //if a desc2 is not a duplicate push it to the array of desc2's
+	{
+      //define parent
+	  //add it the list of newDesc and link it to the parent node
+	  var newDesc = {"name":data[h].desc2,"parent":data[h].desc1,"children":[], "yearData":data[h]};
+	  //go through each item in desc2 and add them as children to the nodes in newDesc
+	  for(k = 0; k < desc3.length; k++)  
+	  {
+	    if(newDesc.name == desc3[k].parent)
+		newDesc.children.push(desc3[k]);
+	  }
+	  //push the list of parents (desc1) and children (desc2) to desc1
+	  //desc2.push({"name":data[h].desc2,"parent":data[h].desc1});
+	  desc2.push(newDesc);
+	}
+  }
+  
+  //Build the first hierarchy layer in the tree
+  //set the parent as the root node "UK Foods"
+  //define the data in the tree as desc1 
+  var desc1 = []; 
+  for(dataItem = 0; dataItem < data.length; dataItem++) //look through the entirety of the csv
+  {
+	var found = false;
+	for(j = 0; j < desc1.length; j++)
+	{
+	  if(data[dataItem].desc1 == desc1[j].name) //look through all of the items in desc1 for any duplicates
+	  {
+	    found = true;
+		break;
+	  }
+	}
+	
+	if(!found) //we have a new desc1 item that is not in the tree
+	{
+	  //add it the list of newDesc and link it to the parent node
+	  var newDesc = {"name":data[dataItem].desc1,"parent":"UK Food Imports","children":[], "yearData" : data[h]};
+	  //go through each item in desc2 and add them as children to the nodes in newDesc
+	  for(k = 0; k < desc2.length; k++)  
+	  {
+	    if(newDesc.name == desc2[k].parent)
+		newDesc.children.push(desc2[k]);
+	  }
+	  //push the list of parents (desc1) and children (desc2) to desc1
+	  desc1.push(newDesc);
+	}
+  }
+
+//define the root of the tree with child desc1
+  //if at any point there is no child to make (next child is null, appaend the bar graph)
+  root = {
+    "name": "UK Food Imports",
+    "parent": "null",
+	"data": "null",
+    "children": desc1,
+  };
+
+  
+  root.x0 = height / 2;
+  root.y0 = 0;
+
+  //collapse all nodes in the tree
+  //if there is a bar chart too, collapse that also
+  function collapse(d) {
+    if (d.children) {
+      d._children = d.children;
+      d._children.forEach(collapse);
+      d.children = null;
+    }
+  }
+ 
+  root.children.forEach(collapse);
+  update(root);
+});
+
+
+function drawBarChart( rawData ) {
+
+  d3.selectAll(".BarChartSvg").remove();
+  d3.select(self.frameElement).style("height", "800px");
+
+
+
+  var margin = {top: 20, right: 20, bottom: 70, left: 40},
+    width = 600 - margin.left - margin.right,
+    height = 300 - margin.top - margin.bottom;
+
+  // Parse the date / time
+  var	parseDate = d3.time.format("%Y-%m").parse;
+
+  var x = d3.scale.ordinal().rangeRoundBands([0, width], .05);
+
+  var y = d3.scale.linear().range([height, 0]);
+
+  var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+    //.tickFormat(d3.time.format("%Y-%m"));
+
+  var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left")
+    .ticks(10);
+
+  var svgBarChart = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+	.attr("class", "BarChartSvg")
+  .append("g")
+    .attr("transform", 
+          "translate(" + margin.left + "," + margin.top + ")");
+
+
+  data = [];
+    
+  //I can't believe I'm doing this
+  data.push({"date":1974,"value":parseInt(rawData["1974"])});
+  data.push({"date":1975,"value":parseInt(rawData["1975"])});
+  data.push({"date":1976,"value":parseInt(rawData["1976"])});
+  data.push({"date":1977,"value":parseInt(rawData["1977"])});
+  data.push({"date":1978,"value":parseInt(rawData["1978"])});
+  data.push({"date":1979,"value":parseInt(rawData["1979"])});
+  data.push({"date":1980,"value":parseInt(rawData["1980"])});
+  data.push({"date":1981,"value":parseInt(rawData["1981"])});
+  data.push({"date":1982,"value":parseInt(rawData["1982"])});
+  data.push({"date":1983,"value":parseInt(rawData["1983"])});
+  data.push({"date":1984,"value":parseInt(rawData["1984"])});
+  data.push({"date":1985,"value":parseInt(rawData["1985"])});
+  data.push({"date":1986,"value":parseInt(rawData["1986"])});
+  data.push({"date":1987,"value":parseInt(rawData["1987"])});
+  data.push({"date":1988,"value":parseInt(rawData["1988"])});
+  data.push({"date":1989,"value":parseInt(rawData["1989"])});
+  data.push({"date":1990,"value":parseInt(rawData["1990"])});
+  data.push({"date":1991,"value":parseInt(rawData["1991"])});
+  data.push({"date":1992,"value":parseInt(rawData["1992"])});
+  data.push({"date":1993,"value":parseInt(rawData["1993"])});
+  data.push({"date":1994,"value":parseInt(rawData["1994"])});
+  data.push({"date":1995,"value":parseInt(rawData["1995"])});
+  data.push({"date":1996,"value":parseInt(rawData["1996"])});
+  data.push({"date":1997,"value":parseInt(rawData["1997"])});
+  data.push({"date":1998,"value":parseInt(rawData["1998"])});
+  data.push({"date":1999,"value":parseInt(rawData["1999"])});
+  data.push({"date":2000,"value":parseInt(rawData["2000"])});
+  data.push({"date":2001,"value":parseInt(rawData["2001"])});
+  data.push({"date":2002,"value":parseInt(rawData["2002"])});
+  data.push({"date":2003,"value":parseInt(rawData["2003"])});
+  data.push({"date":2004,"value":parseInt(rawData["2004"])});
+  data.push({"date":2005,"value":parseInt(rawData["2005"])});
+  data.push({"date":2006,"value":parseInt(rawData["2006"])});
+  data.push({"date":2007,"value":parseInt(rawData["2007"])});
+  data.push({"date":2008,"value":parseInt(rawData["2008"])});
+  data.push({"date":2009,"value":parseInt(rawData["2009"])});
+  data.push({"date":2010,"value":parseInt(rawData["2010"])});
+  data.push({"date":2011,"value":parseInt(rawData["2011"])});
+  data.push({"date":2012,"value":parseInt(rawData["2012"])});
+  data.push({"date":2013,"value":parseInt(rawData["2013"])});
+  data.push({"date":2014,"value":parseInt(rawData["2014"])});
+  
+
+
+  x.domain(data.map(function(d) { return d.date; }));
+  y.domain([0, d3.max(data, function(d) {return d.value; })]);
+		
+
+  svgBarChart.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis)
+    .selectAll("text")
+      .style("text-anchor", "end")
+      .attr("dx", "-.8em")
+      .attr("dy", "-.55em")
+      .attr("transform", "rotate(-90)" );
+
+  svgBarChart.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+    
+
+  svgBarChart.selectAll("bar")
+      .data(data)
+    .enter().append("rect")
+      .style("fill", "steelblue")
+      .attr("x", function(d) { return x(d.date); })
+      .attr("width", x.rangeBand())
+      .attr("y", function(d) { return y(d.value); })
+      .attr("height", function(d) { return height - y(d.value); });
+
+//});
+}
+
+function update(source) {
+
+  // Compute the new tree layout.
+  var nodes = tree.nodes(root).reverse(),
+      links = tree.links(nodes);
+
+  // Normalize for fixed-depth.
+  nodes.forEach(function(d) { d.y = d.depth * 240; });
+
+  // Update the nodes…
+  var node = svg.selectAll("g.node")
+      .data(nodes, function(d) { return d.id || (d.id = ++i); });
+
+  // Enter any new nodes at the parent's previous position.
+  var nodeEnter = node.enter().append("g")
+      .attr("class", "node")
+      .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
+      .on("click", click);
+
+  nodeEnter.append("circle")
+      .attr("r", 1e-6)
+      .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
+
+  nodeEnter.append("text")
+      .attr("x", function(d) { return d.children || d._children ? -10 : 10; })
+      .attr("dy", ".35em")
+      .attr("text-anchor", function(d) { return d.children || d._children ? "end" : "start"; })
+      .text(function(d) { return d.name; })
+      .style("fill-opacity", 1e-6);
+	  
+	
+
+  // Transition nodes to their new position.
+  var nodeUpdate = node.transition()
+      .duration(duration)
+      .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
+
+  nodeUpdate.select("circle")
+      .attr("r", 4.5)
+      .style("fill", function(d) { return d._children ? "lightsteelblue" : "#fff"; });
+
+  nodeUpdate.select("text")
+      .style("fill-opacity", 1);
+
+  // Transition exiting nodes to the parent's new position.
+  var nodeExit = node.exit().transition()
+      .duration(duration)
+      .attr("transform", function(d) { return "translate(" + source.y + "," + source.x + ")"; })
+      .remove();
+
+  nodeExit.select("circle")
+      .attr("r", 1e-6);
+
+  nodeExit.select("text")
+      .style("fill-opacity", 1e-6);
+
+	  //if a node has no children append a bar chart 
+	  
+  // Update the links…
+  var link = svg.selectAll("path.link")
+      .data(links, function(d) { return d.target.id; });
+
+  // Enter any new links at the parent's previous position.
+  link.enter().insert("path", "g")
+      .attr("class", "link")
+      .attr("d", function(d) {
+        var o = {x: source.x0, y: source.y0};
+        return diagonal({source: o, target: o});
+      });
+
+  // Transition links to their new position.
+  link.transition()
+      .duration(duration)
+      .attr("d", diagonal);
+
+  // Transition exiting nodes to the parent's new position.
+  link.exit().transition()
+      .duration(duration)
+      .attr("d", function(d) {
+        var o = {x: source.x, y: source.y};
+        return diagonal({source: o, target: o});
+      })
+      .remove();
+
+  // Stash the old positions for transition.
+  nodes.forEach(function(d) {
+    d.x0 = d.x;
+    d.y0 = d.y;
+  });
+  
+  
+}
+
+// Toggle children on click.
+function click(d) {
+  if (d.children) {
+    d._children = d.children;
+    d.children = null;
+  } else {
+    d.children = d._children;
+    d._children = null;
+  }
+  
+  if(d.yearData)
+  {
+	drawBarChart(d.yearData);
+  }
+  update(d);
+}
+
+
+
+</script>
